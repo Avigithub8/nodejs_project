@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Library Management</title>
+  </head>
+  <body>
+    <h1>Library Management</h1>
+    <form action="/" method="GET">
+      <label for="search">Search Book:</label>
+      <input
+        type="text"
+        id="search"
+        name="search"
+        value="<%= books.bookName|| '' %>"
+      />
+      <button type="submit">Search</button>
+    </form>
+
+    <ul>
+      <% books.forEach(book => { %>
+      <li>
+        <strong><%= book.bookName %></strong> - Taken: <%=
+        book.takenDate.toISOString().split('T')[0] %> <% if (book.returnDate) {
+        %> , Return: <%= book.returnDate.toISOString().split('T')[0] %>, Fine:
+        <%= book.finePrice %> payment <% } %>
+
+        <h1>Detais</h1>
+        <% if (!book.returnDate) { %>
+        <form action="/return-book" method="POST">
+          <input type="hidden" name="bookId" value="<%= book.id %>" />
+          <label for="payment<%= book.id %>">Payment Amount:</label>
+          <input
+            type="number"
+            id="payment<%= book.id %>"
+            name="payment"
+            required
+          />
+          <button onclick="returnBook('<%= book.id %>')">Return Book</button>
+        </form>
+        <% } %>
+      </li>
+      <% }); %>
+    </ul>
+
+    <script>
+      function searchBooks() {
+        const searchInput = document.getElementById("search").value.trim();
+
+        fetch(`/search?name=${encodeURIComponent(searchInput)}`)
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data);
+          })
+          .catch((error) => console.error("Error searching books:", error));
+      }
+      function returnBook(bookId) {
+        fetch(`/return-book/${bookId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              const bookElement = document.getElementById(`book${bookId}`);
+              bookElement.remove();
+            }
+          })
+          .catch((error) => console.error("Error returning book:", error));
+      }
+    </script>
+  </body>
+</html>

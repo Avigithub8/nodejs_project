@@ -2,14 +2,21 @@ function scheduleMeeting() {
     const name = document.getElementById('name').value;
     const email = document.getElementById('email').value;
     const time = document.getElementById('time').value;
+
+    console.log("name",name);
+    console.log("email",email);
+    console.log("time",time);
+    const obj=JSON.stringify({ name, email, time });
+    const options= {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: obj,
+       
+      }
     
-    fetch('http://localhost:3000/schedule', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name, email, time }),
-    })
+    fetch('/schedule',options)
     .then(response => response.json())
     .then(data => {
       if (data.success) {

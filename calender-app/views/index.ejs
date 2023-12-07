@@ -8,15 +8,15 @@
 <body>
   <h1>Schedule a Meeting</h1>
 
-  <form id="meetingForm">
+  <form action="/schedule" method="POST">
     <label for="name">Name:</label>
-    <input type="text" id="name" required>
+    <input type="text" id="name" name="name" required>
 
     <label for="email">Email:</label>
-    <input type="email" id="email" required>
+    <input type="email" id="email" name="email" required>
 
     <label for="time">Meeting Time:</label>
-    <input type="datetime-local" id="time" required>
+    <input type="datetime-local" id="time" name="time" required>
 
     <button type="button" onclick="scheduleMeeting()">Schedule Meeting</button>
   </form>
