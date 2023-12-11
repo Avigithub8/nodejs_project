@@ -4,29 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Company Review</title>
-  <style>
-     .star-rating input {
-      display: none;
-    }
-
-    .star-rating label {
-      font-size: 24px;
-      cursor: pointer;
-      color: grey; 
-    }
-
-    .star-rating label::before {
-      content: '☆';
-    }
-
-    .star-rating input:checked ~ label::before {
-      content: '★';
-      color: gold;
-    }
-    label{
-    margin-right: 20px;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
+ 
 </head>
 <body>
   <h1>Add a Review</h1>
@@ -38,29 +17,30 @@
     <textarea name="pros" required></textarea><br/>
     <br>
     <label for="cons">Cons:</label>
-    <textarea name="cons" required></textarea>
+    <textarea name="cons" required></textarea><br/>
     <br>
     <label for="rating">Rating:</label>
-    <!-- <input type="number" name="rating" required min="1" max="5"> -->
+   
     <div class="star-rating">
-        <input type="radio" id="star1" name="rating" value="1" required>
-        <label for="star1"></label>
-        <input type="radio" id="star2" name="rating" value="2" required>
-        <label for="star2"></label>
-        <input type="radio" id="star3" name="rating" value="3" required>
-        <label for="star3"></label>
-        <input type="radio" id="star4" name="rating" value="4" required>
-        <label for="star4"></label>
+     
         <input type="radio" id="star5" name="rating" value="5" required>
         <label for="star5"></label>
+        <input type="radio" id="star4" name="rating" value="4" required>
+        <label for="star4"></label>
+        <input type="radio" id="star3" name="rating" value="3" required>
+        <label for="star3"></label>
+        <input type="radio" id="star2" name="rating" value="2" required>
+        <label for="star2"></label>
+        <input type="radio" id="star1" name="rating" value="1" required>
+        <label for="star1"></label>
       </div>
-
+      <br/>
     <button type="submit">Submit Review</button>
   </form>
   <form action="/" method="GET">
-    <label for="companyName">Search by Company Name:</label>
-    <input type="text" id="companyName" name="companyName">
-    <button type="submit">Search</button>
+    <label for="companyName" class="search-label" >Search by Company Name:</label><br/>
+    <input type="text" id="companyName" name="companyName" class="search-input">
+    <button type="submit" class="search-button">Search</button>
   </form>
   
   <h2>Search Results</h2>
@@ -74,7 +54,7 @@
   <br>
   
   <% companies.forEach(company => { %>
-    <div>
+    <div id="search-result">
       <h2><%= company.companyName %></h2>
       <p>Pros: <%= company.pros %></p>
       <p>Cons: <%= company.cons %></p>
@@ -82,24 +62,7 @@
     </div>
   <% }); %>
   
-  <script>
-       document.addEventListener('DOMContentLoaded', function () {
-      const starInputs = document.querySelectorAll('.star-rating input');
+  
 
-      starInputs.forEach(input => {
-        input.addEventListener('change', function () {
-          
-          if (this.checked) {
-            const clickedIndex = Array.from(starInputs).indexOf(input);
-
-           
-            starInputs.forEach((starInput, index) => {
-              starInput.value = index >= clickedIndex + 1 ? index+1 : 0;
-            });
-          }
-        });
-      });
-    });
-  </script>
 </body>
 </html>
