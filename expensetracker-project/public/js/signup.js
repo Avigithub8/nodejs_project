@@ -47,4 +47,10 @@ function clearValidationMessages() {
   }
 }
 
+setTimeout(() => {
+  const loginMessage = document.getElementById('loginMessage');
+  if (loginMessage) {
+    loginMessage.innerHTML = '';
+  }
+}, 5000);
 

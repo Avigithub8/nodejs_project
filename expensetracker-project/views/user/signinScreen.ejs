@@ -3,18 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign Up Screen</title>
+    <title>Sign In Screen</title>
     <link rel="stylesheet" href="/css/style.css" />
     <script src="/js/signup.js"></script>
   </head>
   <body>
-    <h1>Sign Up Form</h1>
-   
-    <form action="/signup" method="POST" onsubmit="return validateForm()">
-      <label for="username">Username:</label>
-      <input type="text" id="username" name="username" />
-      <span id="username-error" class="validation-error"></span>
-
+    <h1>Sign In Form</h1>
+    
+    <form action="/signin" method="POST" onsubmit="return validateForm()">
+  
+        <div class="message" id="loginMessage">
+            <% if (message) { %>
+              <p><%= message %></p>
+            <% } %>
+          </div>
       <label for="emailid">Email Id:</label>
       <input type="email" id="email" name="emailid" />
       <span id="email-error" class="validation-error"></span>
@@ -22,17 +24,13 @@
       <label for="password">Password:</label>
       <input type="password" id="password" name="password" />
       <span id="password-error" class="validation-error"></span>
-
-      <button type="submit">SignUp</button>
-       <a href="./signin">Go to Login Screen</a>
+      
+      <button type="submit">SignIn</button>
+      <a href="./signup">Go to SignUp Screen</a>
       
     </form>
-    <% if (message) { %>
-      <p><%= message %></p>
-      <% if (user) { %>
-        <p>User Details: <%= JSON.stringify(user) %></p>
-      <% } %>
-    <% } %>
+    
+    
    
 
       
