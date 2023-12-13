@@ -9,7 +9,7 @@ router.get("/", (req, res) => {
 });
 
 router.get("/signup", (req, res) => {
-  res.render("signupScreen", { message: null });
+  res.render("user/signupScreen", { message: null });
 });
 
 router.post("/signup", async (req, res) => {
@@ -21,16 +21,18 @@ router.post("/signup", async (req, res) => {
     if (existingUser) {
       return res.redirect("/signin");
     }
-    bcrypt.hash(password,8,async(err,password)=>{
+    bcrypt.hash(password, 8, async (err, password) => {
       console.log(err);
-      const newUser = await expenseModel.create({ username, emailid, password:password });
+      const newUser = await expenseModel.create({
+        username,
+        emailid,
+        password: password,
+      });
       return res.render("signupScreen", {
         message: "Signup successful",
         user: newUser,
       });
-    })
-
-    
+    });
   } catch (error) {
     console.error("Error during signup:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -38,7 +40,7 @@ router.post("/signup", async (req, res) => {
 });
 
 router.get("/signin", (req, res) => {
-  res.render("signinScreen", { message: null });
+  res.render("user/signinScreen", { message: null });
 });
 
 router.post("/signin", async (req, res) => {
@@ -51,19 +53,18 @@ router.post("/signin", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // if (user && user.password === password) {
     bcrypt.compare(password, user.password, (err, result) => {
-      if(err){
-        throw new Error('Something went wrong!')
+      if (err) {
+        console.error("Error during password comparison:", err);
+        return res.status(500).json({ message: "Internal Server Error" });
       }
-      if (result==true) {
-        return res.status(200).json({ message: "User login successful" });
+
+      if (result) {
+         return res.redirect('/product/addProduct');
       } else {
         return res.status(400).json({ message: "Password is incorrect" });
       }
-     
-    })
-   
+    });
   } catch (error) {
     console.error("Error during login:", error);
     res.status(500).json({ error: "Internal Server Error" });
