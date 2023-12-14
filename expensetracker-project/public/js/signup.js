@@ -3,16 +3,13 @@ function validateForm() {
   var email = document.getElementById("email").value;
   var password = document.getElementById("password").value;
 
-
   clearValidationMessages();
- 
 
   var isValid = true;
 
-
   if (username.trim() === "") {
     displayValidationMessage("username-error", "Please enter a username.");
-  
+
     isValid = false;
   }
 
@@ -22,13 +19,19 @@ function validateForm() {
   } else {
     var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      displayValidationMessage("email-error", "Please enter a valid email address.");
+      displayValidationMessage(
+        "email-error",
+        "Please enter a valid email address."
+      );
       isValid = false;
     }
   }
 
   if (password.length < 8) {
-    displayValidationMessage("password-error", "Password must be at least 8 characters long.");
+    displayValidationMessage(
+      "password-error",
+      "Password must be at least 8 characters long."
+    );
     isValid = false;
   }
 
@@ -48,9 +51,10 @@ function clearValidationMessages() {
 }
 
 setTimeout(() => {
-  const loginMessage = document.getElementById('loginMessage');
+  const loginMessage = document.getElementById("loginMessage");
   if (loginMessage) {
-    loginMessage.innerHTML = '';
+    loginMessage.innerHTML = "";
   }
 }, 5000);
+
 

@@ -1,69 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Add Product</title>
-</head>
-<body>
+    <!-- <script src="../../public/js/deleteproduct.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
     <h1>Add a Expense</h1>
-    <form action="/product/addProduct" method="POST" >
-        <label for="amount">Expense Amount:</label>
-        <input type="number" id="amount" name="amount" required />
+    <form action="/product/addProduct" method="POST">
+      <input type="hidden" name="userid" value="<%= userid %>" />
+      <label for="amount">Expense Amount:</label>
+      <input type="number" id="amount" name="amount" required />
 
-        <label for="description">Expense Description:</label>
-        <input type="text" id="description" name="description" required />
-   
-        <label  for="category">Choose a Category:</label>
-            <select id="category" name="category">
-                <option value="electronics">Electronics</option>
-                <option value="food">Food</option>
-                <option value="skincare">Skincare</option>
-            </select>
-           
-            <button>Add Product</button>
+      <label for="description">Expense Description:</label>
+      <input type="text" id="description" name="description" required />
+
+      <label for="category">Choose a Category:</label>
+      <select id="category" name="category">
+        <option value="electronics">Electronics</option>
+        <option value="food">Food</option>
+        <option value="skincare">Skincare</option>
+      </select>
+
+      <button>Add Product</button>
     </form>
 
     <div id="message"></div>
-        <h1>
-            Products Detail
-        </h1>
-        <h3>Electronics Items</h3>
-        <ul id="electronics">
-            <% expenses.filter(item => item.category === 'electronics').forEach(item => { %>
-                <li>
-                    Amount: <%= item.amount  %> ,
-                    Description:  <%= item.description  %> ,
-                    Category: <%= item.category  %>
-                    <button onclick="deleteItem('<%= item.id %>')">Delete</button>
-                </li>
-            <% }); %>
-        </ul>
-    
-        <h3>Food Items</h3>
-        <ul id="food">
-            <% expenses.filter(item => item.category === 'food').forEach(item => { %>
-                <li>
-                   Amount: <%= item.amount  %> ,
-                   Description:  <%= item.description  %> ,
-                   Category: <%= item.category  %>
-                   
-                    <button onclick="deleteItem('<%= item.id %>')">Delete</button>
-                </li>
-            <% }); %>
-        </ul>
-    
-        <h3>Skincare Items</h3>
-        <ul id="skincare">
-            <% expenses.filter(item => item.category === 'skincare').forEach(item => { %>
-                <li>
-                    Amount: <%= item.amount  %> ,
-                    Description:  <%= item.description  %> ,
-                    Category: <%= item.category  %>
-                    <button onclick="deleteItem('<%= item.id %>')">Delete</button>
-                </li>
-            <% }); %>
-        </ul>
-    
-</body>
+    <h1>Products Detail</h1>
+    <h3>Electronics Items</h3>
+    <ul id="electronics">
+        <% expenses.filter(function(item) { return item.category === 'electronics'; }).forEach(function(item) { %>
+            <li id="<%= item.category + '-' + item.id %>">
+                Amount: <%= item.amount  %> ,
+                Description:  <%= item.description  %> ,
+                Category: <%= item.category  %>
+                <button onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')">Delete</button>
+            </li>
+        <% }); %>
+    </ul>
+
+    <h3>Food Items</h3>
+    <ul id="food" >
+        <% expenses.filter(function(item) { return item.category === 'food'; }).forEach(function(item) { %>
+            <li id="<%= item.category + '-' + item.id %>">
+                Amount: <%= item.amount  %> ,
+                Description:  <%= item.description  %> ,
+                Category: <%= item.category  %>
+                <button onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')">Delete</button>
+            </li>
+        <% }); %>
+    </ul>
+
+    <h3>Skincare Items</h3>
+    <ul id="skincare">
+        <% expenses.filter(function(item) { return item.category === 'skincare'; }).forEach(function(item) { %>
+            <li id="<%= item.category + '-' + item.id %>">
+                Amount: <%= item.amount  %> ,
+                Description:  <%= item.description  %> ,
+                Category: <%= item.category  %>
+                <button onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')">Delete</button>
+            </li>
+        <% }); %>
+    </ul>
+
+    <script>
+      function deleteItem(userId, itemId,category) {
+        const confirmation = confirm(
+          "Are you sure you want to delete this item?"
+        );
+        console.log("id.......", itemId,userId);
+        if (confirmation) {
+          axios
+            .delete(`/product/deleteProduct`,{ data: { userId, itemId } })
+            .then((response) => {
+              if (response.data.success) {
+                const listItem = document.getElementById(
+                  `${category}-${itemId}`
+                );
+                listItem.parentNode.removeChild(listItem);
+              } else {
+                alert("Failed to delete item.");
+              }
+            })
+            .catch((error) => {
+              console.error("Error deleting item:", error);
+            });
+        }
+      }
+    </script>
+  </body>
 </html>

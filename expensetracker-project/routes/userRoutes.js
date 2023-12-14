@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { Op } = require("sequelize");
-const expenseModel = require("../models/expenseModel");
+const UserModel = require("../models/UserModel");
 const bcrypt = require("bcrypt");
 
 router.get("/", (req, res) => {
@@ -14,21 +14,24 @@ router.get("/signup", (req, res) => {
 
 router.post("/signup", async (req, res) => {
   const { username, emailid, password } = req.body;
-
+  console.log(req.body);
   try {
-    const existingUser = await expenseModel.findOne({ where: { emailid } });
+    const existingUser = await UserModel.findOne({ where: { emailid } });
 
     if (existingUser) {
-      return res.redirect("/signin");
+      return res.redirect("user/signin");
     }
-    bcrypt.hash(password, 8, async (err, password) => {
-      console.log(err);
-      const newUser = await expenseModel.create({
+    bcrypt.hash(password, 8, async (err, hashPassword) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Internal Server Error!" });
+      }
+      const newUser = await UserModel.create({
         username,
         emailid,
-        password: password,
+        password: hashPassword,
       });
-      return res.render("signupScreen", {
+      return res.render("user/signupScreen", {
         message: "Signup successful",
         user: newUser,
       });
@@ -45,10 +48,10 @@ router.get("/signin", (req, res) => {
 
 router.post("/signin", async (req, res) => {
   const { emailid, password } = req.body;
-
+  console.log("body", req.body);
   try {
-    const user = await expenseModel.findOne({ where: { emailid } });
-
+    const user = await UserModel.findOne({ where: { emailid } });
+    console.log("user", user);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -56,12 +59,15 @@ router.post("/signin", async (req, res) => {
     bcrypt.compare(password, user.password, (err, result) => {
       if (err) {
         console.error("Error during password comparison:", err);
-        return res.status(500).json({ message: "Internal Server Error" });
+        return res.status(500).json({ message: "Internal Server Error!" });
       }
 
       if (result) {
-         return res.redirect('/product/addProduct');
+        const userId = user.id || user.dataValues.id;
+        console.log("User login successful. User ID:", userId);
+        return res.redirect(`/product/addProduct/${userId}` );
       } else {
+        console.log("Invalid password for user:", user);
         return res.status(400).json({ message: "Password is incorrect" });
       }
     });

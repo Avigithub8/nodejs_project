@@ -1,7 +1,14 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('./index');
+const { DataTypes } = require("sequelize");
+const sequelize = require("./index");
+const UserModel = require("./UserModel");
 
-const Expense = sequelize.define('expenses', {
+const ProductModel = sequelize.define('expenses', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+    allowNull: false,
+  },
   amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
@@ -14,6 +21,14 @@ const Expense = sequelize.define('expenses', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  userid: {
+    type: DataTypes.INTEGER, 
+    allowNull: false,
+  },
 });
 
-module.exports = Expense;
+
+//ProductModel.belongsTo(UserModel, {as:'UserModel', foreignKey: 'userid' });
+
+
+module.exports = ProductModel;
