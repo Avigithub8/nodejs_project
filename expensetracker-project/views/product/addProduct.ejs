@@ -6,6 +6,7 @@
     <title>Add Product</title>
     <!-- <script src="../../public/js/deleteproduct.js"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   </head>
   <body>
     <h1>Add a Expense</h1>
@@ -26,54 +27,67 @@
 
       <button>Add Product</button>
     </form>
+    <button id="paymentButton">Make Payment</button>
 
     <div id="message"></div>
     <h1>Products Detail</h1>
     <h3>Electronics Items</h3>
     <ul id="electronics">
-        <% expenses.filter(function(item) { return item.category === 'electronics'; }).forEach(function(item) { %>
-            <li id="<%= item.category + '-' + item.id %>">
-                Amount: <%= item.amount  %> ,
-                Description:  <%= item.description  %> ,
-                Category: <%= item.category  %>
-                <button onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')">Delete</button>
-            </li>
-        <% }); %>
+      <% expenses.filter(function(item) { return item.category ===
+      'electronics'; }).forEach(function(item) { %>
+      <li id="<%= item.category + '-' + item.id %>">
+        Amount: <%= item.amount %> , Description: <%= item.description %> ,
+        Category: <%= item.category %>
+        <button
+          onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')"
+        >
+          Delete
+        </button>
+      </li>
+      <% }); %>
     </ul>
 
     <h3>Food Items</h3>
-    <ul id="food" >
-        <% expenses.filter(function(item) { return item.category === 'food'; }).forEach(function(item) { %>
-            <li id="<%= item.category + '-' + item.id %>">
-                Amount: <%= item.amount  %> ,
-                Description:  <%= item.description  %> ,
-                Category: <%= item.category  %>
-                <button onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')">Delete</button>
-            </li>
-        <% }); %>
+    <ul id="food">
+      <% expenses.filter(function(item) { return item.category === 'food';
+      }).forEach(function(item) { %>
+      <li id="<%= item.category + '-' + item.id %>">
+        Amount: <%= item.amount %> , Description: <%= item.description %> ,
+        Category: <%= item.category %>
+        <button
+          onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')"
+        >
+          Delete
+        </button>
+      </li>
+      <% }); %>
     </ul>
 
     <h3>Skincare Items</h3>
     <ul id="skincare">
-        <% expenses.filter(function(item) { return item.category === 'skincare'; }).forEach(function(item) { %>
-            <li id="<%= item.category + '-' + item.id %>">
-                Amount: <%= item.amount  %> ,
-                Description:  <%= item.description  %> ,
-                Category: <%= item.category  %>
-                <button onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')">Delete</button>
-            </li>
-        <% }); %>
+      <% expenses.filter(function(item) { return item.category === 'skincare';
+      }).forEach(function(item) { %>
+      <li id="<%= item.category + '-' + item.id %>">
+        Amount: <%= item.amount %> , Description: <%= item.description %> ,
+        Category: <%= item.category %>
+        <button
+          onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')"
+        >
+          Delete
+        </button>
+      </li>
+      <% }); %>
     </ul>
 
     <script>
-      function deleteItem(userId, itemId,category) {
+      function deleteItem(userId, itemId, category) {
         const confirmation = confirm(
           "Are you sure you want to delete this item?"
         );
-        console.log("id.......", itemId,userId);
+        console.log("id.......", itemId, userId);
         if (confirmation) {
           axios
-            .delete(`/product/deleteProduct`,{ data: { userId, itemId } })
+            .delete(`/product/deleteProduct`, { data: { userId, itemId } })
             .then((response) => {
               if (response.data.success) {
                 const listItem = document.getElementById(
@@ -89,6 +103,42 @@
             });
         }
       }
+
+      document
+        .getElementById("paymentButton")
+        .addEventListener("click", async function () {
+            try {
+            const response = await axios.post('/product/createOrder');
+
+              const data = response.data;
+              const options = {
+                key: "rzp_test_QWtS9qPBz9rzlU",
+                amount: data.amount,
+                currency: "INR",
+                order_id: data.orderId,
+                name: "Test",
+                description:
+                  "this is amazing and a good for view detail of product ",
+                handler: function (response) {
+                  alert(response.razorpay_payment_id);
+                },
+                prefill: {
+                  name: "Test",
+                  email: "testing@yopmail.com",
+                  contact: "912086213307",
+                },
+                theme: {
+                  color: "#3399cc",
+                },
+              };
+
+              const rzp = new Razorpay(options);
+              rzp.open();
+            }
+            catch(error) {
+              console.error("Error fetching Razorpay order ID:", error);
+            }});
+        //});
     </script>
   </body>
 </html>

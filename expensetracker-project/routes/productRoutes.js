@@ -4,6 +4,39 @@ const { Op } = require("sequelize");
 const path = require("path");
 const productModel = require("../models/productModel");
 const UserModel = require("../models/UserModel");
+const Razorpay = require('razorpay');
+
+
+const razorpay = new Razorpay({
+  key_id: 'rzp_test_QWtS9qPBz9rzlU',
+  key_secret: 'odPjY0TqBnnbinQ2pzK4AtAb',
+});
+
+
+router.post('/createOrder', async (req, res) => {
+  try {
+    const options = {
+      amount: 100*100, 
+      currency: 'INR',
+      //receipt: order.id,
+    };
+
+    
+    razorpay.orders.create(options, (err, order) => {
+      if (err) {
+        console.error('Error creating Razorpay order:', err);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+
+      
+      res.json({ orderId: order.id, amount: order.amount });
+    });
+  } catch (error) {
+    console.error('Error creating Razorpay order:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 router.get("/addProduct/:userid", async (req, res) => {
   console.log("id======", req.params.userid);
