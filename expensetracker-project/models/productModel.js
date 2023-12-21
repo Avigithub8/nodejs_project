@@ -1,34 +1,26 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("./index");
-const UserModel = require("./UserModel");
+const { DataTypes } = require('sequelize');
+const  sequelize  = require('./index');
+const User = require('./UserModel');
 
-const ProductModel = sequelize.define('expenses', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-    allowNull: false,
-  },
+const Product = sequelize.define('Product', {
   amount: {
-    type: DataTypes.DECIMAL(10, 2),
+    type: DataTypes.INTEGER,
     allowNull: false,
+    defaultValue: 0,
   },
   description: {
     type: DataTypes.STRING,
     allowNull: false,
+    defaultValue: 'N/A',
   },
   category: {
     type: DataTypes.STRING,
     allowNull: false,
+    defaultValue: 'N/A',
   },
-  userid: {
-    type: DataTypes.INTEGER, 
-    allowNull: false,
-  },
+
 });
 
 
-//ProductModel.belongsTo(UserModel, {as:'UserModel', foreignKey: 'userid' });
+module.exports = Product;
 
-
-module.exports = ProductModel;

@@ -1,45 +1,53 @@
 const express = require("express");
 const router = express.Router();
-const { Op } = require("sequelize");
-const UserModel = require("../models/UserModel");
+const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const User = require("../models/UserModel");
+const { verifyToken, generateToken } = require("../middleware/verifyToken");
+const { json } = require("body-parser");
+const localStorage = require("localStorage");
 
-router.get("/", (req, res) => {
-  res.render("homeScreen");
+router.post("/signup", async (req, res) => {
+  try {
+    const { email, password, username } = req.body;
+
+    if (!email || !password || !username) {
+      return res.status(400).json({ message: "Incomplete data provided" });
+    }
+
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "User with this email already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({
+      email,
+      password: hashedPassword,
+      username,
+    });
+
+    const token = generateToken(User.id);
+    console.log("token", token);
+    // localStorage.setItem('jwtToken',token);
+    res.cookie("jwtToken", token, { httpOnly: true, maxAge: 3600000 * 1000 }); // 1 hour in milliseconds
+
+    res.status(201).json({ token });
+    // return res.render("user/signupScreen", {
+    //   message: "Signup successful",
+    //   user: newUser,
+    // });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 });
 
 router.get("/signup", (req, res) => {
   res.render("user/signupScreen", { message: null });
-});
-
-router.post("/signup", async (req, res) => {
-  const { username, emailid, password } = req.body;
-  console.log(req.body);
-  try {
-    const existingUser = await UserModel.findOne({ where: { emailid } });
-
-    if (existingUser) {
-      return res.redirect("user/signin");
-    }
-    bcrypt.hash(password, 8, async (err, hashPassword) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Internal Server Error!" });
-      }
-      const newUser = await UserModel.create({
-        username,
-        emailid,
-        password: hashPassword,
-      });
-      return res.render("user/signupScreen", {
-        message: "Signup successful",
-        user: newUser,
-      });
-    });
-  } catch (error) {
-    console.error("Error during signup:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
 });
 
 router.get("/signin", (req, res) => {
@@ -47,34 +55,43 @@ router.get("/signin", (req, res) => {
 });
 
 router.post("/signin", async (req, res) => {
-  const { emailid, password } = req.body;
-  console.log("body", req.body);
+  const { email, password } = req.body;
+
   try {
-    const user = await UserModel.findOne({ where: { emailid } });
-    console.log("user", user);
+    const user = await User.findOne({ where: { email } });
+
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+    const token = generateToken(User.id);
+    // localStorage.setItem('jwtToken',token);
+    res.cookie("jwtToken", token, { httpOnly: true, maxAge: 3600000 * 1000 }); // 1 hour in milliseconds
+    localStorage.setItem("jwtToken", token);
+
+    res.redirect(`/product/addProduct/${user.id}`);
+    //res.json({user})
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+router.delete("/deleteUser/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findByPk(userId);
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    bcrypt.compare(password, user.password, (err, result) => {
-      if (err) {
-        console.error("Error during password comparison:", err);
-        return res.status(500).json({ message: "Internal Server Error!" });
-      }
+    await user.destroy();
 
-      if (result) {
-        const userId = user.id || user.dataValues.id;
-        console.log("User login successful. User ID:", userId);
-        return res.redirect(`/product/addProduct/${userId}` );
-      } else {
-        console.log("Invalid password for user:", user);
-        return res.status(400).json({ message: "Password is incorrect" });
-      }
-    });
+    res.json({ success: true, message: "User deleted successfully" });
   } catch (error) {
-    console.error("Error during login:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("Error deleting user:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-
 module.exports = router;

@@ -4,141 +4,145 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Add Product</title>
-    <!-- <script src="../../public/js/deleteproduct.js"></script> -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   </head>
   <body>
-    <h1>Add a Expense</h1>
-    <form action="/product/addProduct" method="POST">
-      <input type="hidden" name="userid" value="<%= userid %>" />
-      <label for="amount">Expense Amount:</label>
-      <input type="number" id="amount" name="amount" required />
+    <h2>Welcome, <%= username %>!</h2>
 
-      <label for="description">Expense Description:</label>
-      <input type="text" id="description" name="description" required />
+    <form id="addProductForm" action="/product/addProduct" method="POST">
+      <input type="hidden" name="userId" value="<%= userId %>" required />
+      <label>Amount: <input type="text" name="amount" required /></label>
+      <label
+        >Description: <input type="text" name="description" required
+      /></label>
+      <label>Category: <input type="text" name="category" required /></label>
 
-      <label for="category">Choose a Category:</label>
-      <select id="category" name="category">
-        <option value="electronics">Electronics</option>
-        <option value="food">Food</option>
-        <option value="skincare">Skincare</option>
-      </select>
-
-      <button>Add Product</button>
+      <button type="submit">Add Product</button>
     </form>
-    <button id="paymentButton">Make Payment</button>
+    <br />
+    <% if (isPremium) { %>
+    <p>You are a premium user!</p>
+    <button onclick="showLeaderboard()">Show Leaderboard</button>
 
-    <div id="message"></div>
-    <h1>Products Detail</h1>
-    <h3>Electronics Items</h3>
-    <ul id="electronics">
-      <% expenses.filter(function(item) { return item.category ===
-      'electronics'; }).forEach(function(item) { %>
-      <li id="<%= item.category + '-' + item.id %>">
-        Amount: <%= item.amount %> , Description: <%= item.description %> ,
-        Category: <%= item.category %>
-        <button
-          onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')"
+    <% } else { %>
+    <a href="/product/buyPremium?userId=<%= userId %>">Buy Premium</a>
+    <h2>Your Products:</h2>
+    <ul id="productList">
+      <% for (const product of products) { %>
+      <li>
+        <%= product.amount %> - <%= product.description %> - <%=
+        product.category %>
+        <a
+          href="/product/addProduct/<%= userId %>"
+          onclick="deleteProduct('<%= product.id %>', '<%= userId %>')"
+          >Delete</a
         >
-          Delete
-        </button>
       </li>
-      <% }); %>
+      <% } %>
     </ul>
+    <% } %>
 
-    <h3>Food Items</h3>
-    <ul id="food">
-      <% expenses.filter(function(item) { return item.category === 'food';
-      }).forEach(function(item) { %>
-      <li id="<%= item.category + '-' + item.id %>">
-        Amount: <%= item.amount %> , Description: <%= item.description %> ,
-        Category: <%= item.category %>
-        <button
-          onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')"
-        >
-          Delete
-        </button>
-      </li>
-      <% }); %>
-    </ul>
-
-    <h3>Skincare Items</h3>
-    <ul id="skincare">
-      <% expenses.filter(function(item) { return item.category === 'skincare';
-      }).forEach(function(item) { %>
-      <li id="<%= item.category + '-' + item.id %>">
-        Amount: <%= item.amount %> , Description: <%= item.description %> ,
-        Category: <%= item.category %>
-        <button
-          onclick="deleteItem('<%= userid %>', '<%= item.id %>', '<%= item.category %>')"
-        >
-          Delete
-        </button>
-      </li>
-      <% }); %>
-    </ul>
+    <div id="leaderboardSection" style="display: none"></div>
 
     <script>
-      function deleteItem(userId, itemId, category) {
-        const confirmation = confirm(
-          "Are you sure you want to delete this item?"
-        );
-        console.log("id.......", itemId, userId);
-        if (confirmation) {
-          axios
-            .delete(`/product/deleteProduct`, { data: { userId, itemId } })
-            .then((response) => {
-              if (response.data.success) {
-                const listItem = document.getElementById(
-                  `${category}-${itemId}`
-                );
-                listItem.parentNode.removeChild(listItem);
-              } else {
-                alert("Failed to delete item.");
-              }
-            })
-            .catch((error) => {
-              console.error("Error deleting item:", error);
-            });
+      async function deleteProduct(productId, userId) {
+        try {
+          const response = await fetch(
+            `http://localhost:3000/product/deleteProduct/${productId}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          const productList = document.getElementById("productList");
+
+          const deletedProductElement = document.querySelector(
+            `li:has(button[onclick="deleteProduct(${productId})"])`
+          );
+          deletedProductElement.remove();
+
+          window.location.href = `/product/addProduct/${userId}`;
+        } catch (error) {
+          console.error("Error deleting product:", error);
         }
       }
 
-      document
-        .getElementById("paymentButton")
-        .addEventListener("click", async function () {
-            try {
-            const response = await axios.post('/product/createOrder');
+      async function showLeaderboard() {
+        try {
+          const response = await fetch(
+            "http://localhost:3000/product/leaderboard"
+          );
+          const data = await response.json();
 
-              const data = response.data;
-              const options = {
-                key: "rzp_test_CHu1ZhWsUyA4I2",
-                amount: data.amount,
-                currency: "INR",
-                order_id: data.orderId,
-                name: "Yash Prasad",
-                description:
-                  "this is amazing and a good for view detail of product ",
-                handler: function (response) {
-                  alert(response.razorpay_payment_id);
-                },
-                prefill: {
-                  name: "Yash Prasad",
-                  email: "prasadyash2411@gmail.com",
-                  contact: "7003502730",
-                },
-                theme: {
-                  color: "#3399cc",
-                },
-              };
+          if (data.success) {
+            const leaderboardSection =
+              document.getElementById("leaderboardSection");
+            leaderboardSection.innerHTML = generateLeaderboardHTML(
+              data.leaderboard
+            );
+            leaderboardSection.style.display = "block";
+          } else {
+            console.error("Error fetching leaderboard data:", data.message);
+          }
+        } catch (error) {
+          console.error("Error fetching leaderboard data:", error);
+        }
+      }
 
-              const rzp = new Razorpay(options);
-              rzp.open();
+      function generateLeaderboardHTML(leaderboard) {
+        if (!leaderboard || leaderboard.length === 0) {
+          return "<p>No users in the leaderboard</p>";
+        }
+
+        const leaderboardHTML = leaderboard
+          .map(
+            (user, index) => `
+      <li>
+        <span class="rank">${index + 1}</span>
+        <span class="username">${user.username}</span>
+        <span class="amount">${
+          user.Products.length > 0 ? user.Products[0].amount : ""
+        }</span>
+        ${
+          user.username === "random"
+            ? `<button onclick="deleteUser('${user.id}')">Delete</button>`
+            : ""
+        }
+       </li>
+    `
+          )
+          .join("");
+
+        return `<ul>${leaderboardHTML}</ul>`;
+      }
+
+      async function deleteUser(userId) {
+        try {
+          const response = await fetch(
+            `http://localhost:3000/user/deleteUser/${userId}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+              },
             }
-            catch(error) {
-              console.error("Error fetching Razorpay order ID:", error);
-            }});
-        //});
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+
+          await showLeaderboard();
+        } catch (error) {
+          console.error("Error deleting user:", error);
+          alert("Error deleting user. Check console for details.");
+        }
+      }
     </script>
   </body>
 </html>

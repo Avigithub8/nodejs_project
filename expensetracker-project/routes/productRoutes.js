@@ -1,112 +1,271 @@
 const express = require("express");
 const router = express.Router();
-const { Op } = require("sequelize");
-const path = require("path");
-const productModel = require("../models/productModel");
-const UserModel = require("../models/UserModel");
-const Razorpay = require('razorpay');
+const User = require("../models/UserModel");
+const Product = require("../models/productModel");
+const { verifyToken, generateToken } = require("../middleware/verifyToken");
+const Razorpay = require("razorpay");
+const bcrypt = require("bcrypt");
+const localStorage = require("localStorage");
+const sequelize = require("../models/index");
 
+router.use(verifyToken);
+
+localStorage.getItem("jwtToken");
+router.get("/addProduct/:userId", verifyToken, async (req, res) => {
+  const userId = req.params.userId;
+  console.log("userId----", userId);
+
+  
+  //const user = await User.findByPk(userId, { attributes: ['id', 'email', 'username', 'is_premium'] });
+  const userProducts = await User.findByPk(userId, { include: Product });
+  const username =
+    userProducts?.username !== null && userProducts?.username !== undefined
+      ? userProducts?.username
+      : "N/A";
+  res.render(`product/addProduct`, {
+    username: username,
+    isPremium: userProducts?.is_premium || false,
+    products: userProducts?.Products || [],
+    userId: userId,
+  });
+  //res.json({ user });
+});
 
 const razorpay = new Razorpay({
- key_id: 'rzp_test_Sn5EP7QMsslUfX',
-
-  key_secret: 'ADoWCHL63S3bZ0VpwrOYES2G',
+  key_id: "rzp_test_beQQ9JQjjfEj8a",
+  key_secret: "wYVZZf1e8GhMDrXVdsEcJHCG",
 });
 
-
-router.post('/createOrder', async (req, res) => {
+router.get("/buyPremium", async (req, res) => {
   try {
-    const options = {
-      amount: 1*100, 
-      currency: 'INR',
-      //receipt: order.id,
-    };
+    const userId = req.query.userId;
 
-    
-    razorpay.orders.create(options, (err, order) => {
-      if (err) {
-        console.error('Error creating Razorpay order:', err);
-        return res.status(500).json({ error: 'Internal Server Error' });
+    console.log("^^^^^^", userId);
+    res.render("product/buyPremium", { userId });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+router.post("/buyPremium", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    console.log("=====", userId);
+    //const {amount,currency}=req.body
+
+    const orderId = `order_${Date.now()}_${userId}`;
+
+    res.cookie("userId", userId, { httpOnly: true, maxAge: 3600000 * 1000 });
+
+    const order = await razorpay.orders.create({
+      amount: 10 * 100,
+      currency: "INR",
+      receipt: orderId,
+      payment_capture: 1,
+    });
+
+    // res.render("product/buyPremium", {
+    //   orderId: order.id,
+    //   keyId: razorpay.key_id,
+    //   amount: order.amount,
+    // });
+    res.status(201).json({
+      orderId: order.id,
+      keyId: razorpay.key_id,
+      amount: order.amount,
+    });
+    // res.redirect(`/product/verifyPayment/${userId}`)
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+router.post("/verifyPayment", async (req, res) => {
+  try {
+    const { paymentId, orderId, userId } = req.body;
+
+    const payment = await razorpay.payments.fetch(paymentId);
+
+    if (payment.status === "captured" && payment.order_id === orderId) {
+      //const userId=req.cookies.userId;
+      console.log("userid verify", userId);
+
+      try {
+        const user = await User.findByPk(userId);
+        console.log("user verify", user);
+        if (user) {
+          user.is_premium = true;
+          await user.save();
+          res.json({ success: true });
+        } else {
+          res.json({ success: false, message: "User not found" });
+        }
+      } catch (userError) {
+        console.error("Error updating user premium status:", userError);
+        res
+          .status(500)
+          .json({ success: false, message: "Internal Server Error" });
       }
-
-      
-      res.json({ orderId: order.id, amount: order.amount });
-    });
+    } else {
+      res.json({ success: false, message: "Payment verification failed" });
+    }
   } catch (error) {
-    console.error('Error creating Razorpay order:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error(error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
 
+// router.post("/addProduct", async (req, res) => {
+//   try {
+//     const { amount, description, category, userId } = req.body;
+//     //const userId = req.userId;
+//     //const userId = req.params.userId;
+//     // console.log("userId",userId)
 
-router.get("/addProduct/:userid", async (req, res) => {
-  console.log("id======", req.params.userid);
-  try {
-    const userid = req.params.userid;
+//
+//     // const user = await User.findByPk(userId, { attributes: ['id', 'email', 'username', 'is_premium'] });
 
-    const expenses = await productModel.findAll({
-      where: { userid: userid },
-      include: [
-        { model: UserModel, attributes: ["id", "username", "emailid"] },
-      ],
-    });
+//     let product = await Product.create({
+//       amount,
+//       description,
+//       category,
+//       userId,
+//     });
 
-    const viewPath = "product/addProduct";
-    console.log("userId", viewPath);
-    res.render(viewPath, { expenses, userid });
-  } catch (error) {
-    console.error("Error fetching expenses:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+//
+//     res.redirect(`/product/addProduct/${userId}`);
+//
+//
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
 
 router.post("/addProduct", async (req, res) => {
-  console.log(req.body);
-  const { amount, description, category, userid } = req.body;
+  const { userId, amount, description, category } = req.body;
 
   try {
-    //const currentUser = req.body.userid;
-    //console.log("Current User:", currentUser);
+    let user = await User.findByPk(userId);
 
-    const newExpense = await productModel.create({
-      amount,
-      description,
-      category,
-      userid,
+    if (!user) {
+      user = await User.create({ id: userId });
+    }
+
+    if (user.is_premium) {
+      const existingProduct = await Product.findOne({
+        where: { userId: userId },
+        order: [["createdAt", "DESC"]],
+      });
+
+      let updatedAmount = parseInt(amount);
+      if (existingProduct) {
+        updatedAmount += existingProduct.amount;
+      }
+
+      const newProduct = await Product.create({
+        userId: userId,
+        amount: updatedAmount,
+        description: description,
+        category: category,
+      });
+    }
+
+    const newProduct = await Product.create({
+      userId: userId,
+      amount: amount,
+      description: description,
+      category: category,
     });
-
-    res.status(201).json(newExpense);
-    // res.redirect(`/product/addProduct/${userid}`)
+    //res.json({ success: true, message: 'Product added successfully' });
+    res.redirect(`/product/addProduct/${userId}`);
   } catch (error) {
-    console.error("Error creating expense:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("Error adding product:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
-router.delete('/deleteProduct', async (req, res) => {
-  console.log("item---",req.body.userId,req.body.itemId)
+router.get("/getProductList", async (req, res) => {
   try {
-      const {userId, itemId } = req.body;
+    const updatedProductList = await fetchUpdatedProductList();
 
-      
-      if (!userId ||!itemId) {
-          return res.status(400).json({ success: false, error: 'itemId is required' });
-      }
-
-      
-      const deletedProduct = await productModel.destroy({
-          where: { id: itemId,userid: userId, },
-          force: true
-      });
-      console.log("sdsff",deletedProduct,id);
-      if (deletedProduct) {
-          return res.json({ success: true, message: 'Product deleted successfully' });
-      } else {
-          return res.status(404).json({ success: false, error: 'Product not found or could not be deleted.' });
-      }
+    res.json({ products: updatedProductList });
   } catch (error) {
-      console.error('Error deleting product:', error);
-      return res.status(500).json({ success: false, error: 'Internal Server Error' });
+    console.error("Error fetching updated product list:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+async function fetchUpdatedProductList() {
+  try {
+    const updatedProductList = await Product.findAll({
+      attributes: ["id", "amount", "description", "category"],
+    });
+
+    return updatedProductList;
+  } catch (error) {
+    console.error("Error fetching updated product list:", error);
+    throw error;
+  }
+}
+router.delete("/deleteProduct/:productId", async (req, res) => {
+  const { productId } = req.params;
+  console.log("00", productId);
+  const { userId } = req.query;
+  console.log("000000", userId);
+  try {
+    const product = await Product.findByPk(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    await product.destroy();
+
+    res.json({ message: "Product deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/buyPremium/:userId", verifyToken, async (req, res) => {
+  try {
+    const userid = req.userId;
+    console.log("userid", userid);
+    const userId = req.params.userId;
+    console.log("userId++", userId);
+    const user = await User.findByPk(userId);
+    console.log("user----", user);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    //user.is_premium = true;
+
+    //await user.save();
+
+    //res.status(201).json({ message: "Premium status updated successfully" });
+    res.render(`product/buyPremium`);
+  } catch (error) {
+    console.error("Error updating premium status:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/leaderboard", async (req, res) => {
+  try {
+    const leaderboardData = await User.findAll({
+      include: [{ model: Product }],
+      order: [[sequelize.literal("Products.amount"), "DESC"]],
+    });
+
+    res.json({ success: true, leaderboard: leaderboardData });
+  } catch (error) {
+    console.error("Error fetching leaderboard data:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
 

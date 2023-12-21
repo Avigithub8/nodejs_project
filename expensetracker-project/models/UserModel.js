@@ -1,30 +1,42 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("./index");
-const ProductModel = require("./productModel");
+const {DataTypes}  = require('sequelize');
+const sequelize  = require('./index');
+const Product=require('../models/productModel')
 
-const UserModel = sequelize.define('users', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-    allowNull: false,
-  },
-  username: {
+const User = sequelize.define('User', {
+  email: {
     type: DataTypes.STRING,
     allowNull: false,
-  },
-  emailid: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    primaryKey: true,
+    unique: true,
+    defaultValue: () => `user_${Date.now()}@example.com`, 
   },
   password: {
     type: DataTypes.STRING,
     allowNull: false,
+    defaultValue: '00000000',
+  },
+  username: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'random',
+  },
+  is_premium: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
 });
 
-UserModel.hasMany(ProductModel, { foreignKey: 'userid' });
-ProductModel.belongsTo(UserModel, { foreignKey: 'userid' });
+User.hasMany(Product, {
+  foreignKey: 'userId',
+  onDelete: 'CASCADE',
+});
+Product.belongsTo(User, {
+  foreignKey: 'userId',
+  onDelete: 'CASCADE',
+});
 
-module.exports = UserModel;
+
+
+
+
+module.exports = User;
+
