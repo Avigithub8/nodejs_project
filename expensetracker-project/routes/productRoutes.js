@@ -7,6 +7,7 @@ const Razorpay = require("razorpay");
 const bcrypt = require("bcrypt");
 const localStorage = require("localStorage");
 const sequelize = require("../models/index");
+const { Op } = require('sequelize');
 
 router.use(verifyToken);
 
@@ -221,6 +222,16 @@ router.get("/leaderboard", async (req, res) => {
       include: [{ model: Product }],
       order: [[sequelize.literal("Products.amount"), "DESC"]],
     });
+
+    // const leaderboardData = await User.findAll({
+    //   include: [
+    //     {
+    //       model: Product,
+    //       where: sequelize.where(sequelize.literal('Products.amount'), '>','0'),
+    //     },
+    //   ],
+    //   order: [[sequelize.literal("Products.amount"), "DESC"]],
+    // });
 
     res.json({ success: true, leaderboard: leaderboardData });
   } catch (error) {

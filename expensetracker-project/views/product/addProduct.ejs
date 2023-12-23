@@ -103,11 +103,11 @@
           .map(
             (user, index) => `
       <li>
-        <span class="rank">${index + 1}</span>
-        <span class="username">${user.username}</span>
-        <span class="amount">${
-          user.Products.length > 0 ? user.Products[0].amount : ""
-        }</span>
+        <span class="rank">Index: ${index + 1} ,</span>
+        <span class="username">Name: ${user.username} ,</span>
+        <span class="amount">Amount: ${
+          user.Products.length > 0 ? user.Products[0].amount : "N/A"
+        } </span>
         ${
           user.username === "random"
             ? `<button onclick="deleteUser('${user.id}')">Delete</button>`
