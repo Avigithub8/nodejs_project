@@ -7,7 +7,7 @@ const Razorpay = require("razorpay");
 const bcrypt = require("bcrypt");
 const localStorage = require("localStorage");
 const sequelize = require("../models/index");
-const { Op } = require('sequelize');
+const { Op } = require("sequelize");
 
 router.use(verifyToken);
 
@@ -120,31 +120,15 @@ router.post("/addProduct", async (req, res) => {
       user = await User.create({ id: userId });
     }
 
-    if (user.is_premium) {
-      const existingProduct = await Product.findOne({
-        where: { userId: userId },
-        order: [["createdAt", "DESC"]],
-      });
-
-      let updatedAmount = parseInt(amount);
-      if (existingProduct) {
-        updatedAmount += existingProduct.amount;
-      }
-
+   
       const newProduct = await Product.create({
         userId: userId,
-        amount: updatedAmount,
+        amount: amount,
         description: description,
         category: category,
       });
-    }
+   
 
-    const newProduct = await Product.create({
-      userId: userId,
-      amount: amount,
-      description: description,
-      category: category,
-    });
     //res.json({ success: true, message: 'Product added successfully' });
     res.redirect(`/product/addProduct/${userId}`);
   } catch (error) {
@@ -164,18 +148,28 @@ router.get("/getProductList", async (req, res) => {
   }
 });
 
+
+
 async function fetchUpdatedProductList() {
+  const t = await sequelize.transaction();
+
   try {
     const updatedProductList = await Product.findAll({
       attributes: ["id", "amount", "description", "category"],
+      transaction: t,
     });
+
+    await t.commit();
 
     return updatedProductList;
   } catch (error) {
+    await t.rollback();
+
     console.error("Error fetching updated product list:", error);
     throw error;
   }
 }
+
 router.delete("/deleteProduct/:productId", async (req, res) => {
   const { productId } = req.params;
 
@@ -216,25 +210,24 @@ router.get("/buyPremium/:userId", verifyToken, async (req, res) => {
   }
 });
 
+
+
 router.get("/leaderboard", async (req, res) => {
+  const t = await sequelize.transaction();
+
   try {
     const leaderboardData = await User.findAll({
       include: [{ model: Product }],
       order: [[sequelize.literal("Products.amount"), "DESC"]],
+      transaction: t,
     });
 
-    // const leaderboardData = await User.findAll({
-    //   include: [
-    //     {
-    //       model: Product,
-    //       where: sequelize.where(sequelize.literal('Products.amount'), '>','0'),
-    //     },
-    //   ],
-    //   order: [[sequelize.literal("Products.amount"), "DESC"]],
-    // });
+    await t.commit();
 
     res.json({ success: true, leaderboard: leaderboardData });
   } catch (error) {
+    await t.rollback();
+
     console.error("Error fetching leaderboard data:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }

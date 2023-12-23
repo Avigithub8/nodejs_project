@@ -19,8 +19,25 @@
       <button type="submit">Add Product</button>
     </form>
     <br />
+
     <% if (isPremium) { %>
     <p>You are a premium user!</p>
+
+    <h2>Your Products:</h2>
+    <ul id="productList">
+      <% for (const product of products) { %>
+      <li>
+        <%= product.amount %> - <%= product.description %> - <%=
+        product.category %>
+        <a
+          href="/product/addProduct/<%= userId %>"
+          onclick="deleteProduct('<%= product.id %>', '<%= userId %>')"
+          >Delete</a
+        >
+      </li>
+      <% } %>
+    </ul>
+
     <button onclick="showLeaderboard()">Show Leaderboard</button>
 
     <% } else { %>
@@ -105,9 +122,7 @@
       <li>
         <span class="rank">Index: ${index + 1} ,</span>
         <span class="username">Name: ${user.username} ,</span>
-        <span class="amount">Amount: ${
-          user.Products.length > 0 ? user.Products[0].amount : "N/A"
-        } </span>
+        <span class="amount">Amount: ${getUpdatedAmount(user)} </span>
         ${
           user.username === "random"
             ? `<button onclick="deleteUser('${user.id}')">Delete</button>`
@@ -119,6 +134,15 @@
           .join("");
 
         return `<ul>${leaderboardHTML}</ul>`;
+      }
+
+      function getUpdatedAmount(user) {
+        const totalAmount = user.Products.reduce(
+          (sum, product) => sum + product.amount,
+          0
+        );
+
+        return totalAmount;
       }
 
       async function deleteUser(userId) {
