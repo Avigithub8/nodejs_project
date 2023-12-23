@@ -31,15 +31,10 @@ router.post("/signup", async (req, res) => {
     });
 
     const token = generateToken(User.id);
-    console.log("token", token);
-    // localStorage.setItem('jwtToken',token);
+
     res.cookie("jwtToken", token, { httpOnly: true, maxAge: 3600000 * 1000 }); // 1 hour in milliseconds
 
     res.status(201).json({ token });
-    // return res.render("user/signupScreen", {
-    //   message: "Signup successful",
-    //   user: newUser,
-    // });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -64,12 +59,11 @@ router.post("/signin", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
     const token = generateToken(User.id);
-    // localStorage.setItem('jwtToken',token);
+
     res.cookie("jwtToken", token, { httpOnly: true, maxAge: 3600000 * 1000 }); // 1 hour in milliseconds
     localStorage.setItem("jwtToken", token);
 
     res.redirect(`/product/addProduct/${user.id}`);
-    //res.json({user})
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal Server Error" });

@@ -13,9 +13,7 @@ router.use(verifyToken);
 localStorage.getItem("jwtToken");
 router.get("/addProduct/:userId", verifyToken, async (req, res) => {
   const userId = req.params.userId;
-  console.log("userId----", userId);
 
-  
   //const user = await User.findByPk(userId, { attributes: ['id', 'email', 'username', 'is_premium'] });
   const userProducts = await User.findByPk(userId, { include: Product });
   const username =
@@ -50,8 +48,6 @@ router.get("/buyPremium", async (req, res) => {
 router.post("/buyPremium", async (req, res) => {
   try {
     const userId = req.params.userId;
-    console.log("=====", userId);
-    //const {amount,currency}=req.body
 
     const orderId = `order_${Date.now()}_${userId}`;
 
@@ -88,12 +84,9 @@ router.post("/verifyPayment", async (req, res) => {
     const payment = await razorpay.payments.fetch(paymentId);
 
     if (payment.status === "captured" && payment.order_id === orderId) {
-      //const userId=req.cookies.userId;
-      console.log("userid verify", userId);
-
       try {
         const user = await User.findByPk(userId);
-        console.log("user verify", user);
+
         if (user) {
           user.is_premium = true;
           await user.save();
@@ -115,33 +108,6 @@ router.post("/verifyPayment", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
-
-// router.post("/addProduct", async (req, res) => {
-//   try {
-//     const { amount, description, category, userId } = req.body;
-//     //const userId = req.userId;
-//     //const userId = req.params.userId;
-//     // console.log("userId",userId)
-
-//
-//     // const user = await User.findByPk(userId, { attributes: ['id', 'email', 'username', 'is_premium'] });
-
-//     let product = await Product.create({
-//       amount,
-//       description,
-//       category,
-//       userId,
-//     });
-
-//
-//     res.redirect(`/product/addProduct/${userId}`);
-//
-//
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Internal Server Error" });
-//   }
-// });
 
 router.post("/addProduct", async (req, res) => {
   const { userId, amount, description, category } = req.body;
@@ -211,9 +177,9 @@ async function fetchUpdatedProductList() {
 }
 router.delete("/deleteProduct/:productId", async (req, res) => {
   const { productId } = req.params;
-  console.log("00", productId);
+
   const { userId } = req.query;
-  console.log("000000", userId);
+
   try {
     const product = await Product.findByPk(productId);
 
@@ -233,21 +199,15 @@ router.delete("/deleteProduct/:productId", async (req, res) => {
 router.get("/buyPremium/:userId", verifyToken, async (req, res) => {
   try {
     const userid = req.userId;
-    console.log("userid", userid);
+
     const userId = req.params.userId;
-    console.log("userId++", userId);
+
     const user = await User.findByPk(userId);
-    console.log("user----", user);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    //user.is_premium = true;
-
-    //await user.save();
-
-    //res.status(201).json({ message: "Premium status updated successfully" });
     res.render(`product/buyPremium`);
   } catch (error) {
     console.error("Error updating premium status:", error);
