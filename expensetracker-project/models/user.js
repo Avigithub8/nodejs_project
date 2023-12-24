@@ -1,6 +1,6 @@
-const {DataTypes}  = require('sequelize');
+const DataTypes  = require('sequelize');
 const sequelize  = require('./index');
-const Product=require('../models/productModel')
+const Product=require('../models/product')
 
 const User = sequelize.define('User', {
   email: {
@@ -22,6 +22,10 @@ const User = sequelize.define('User', {
   is_premium: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+  },
+  resetToken: {
+    type: DataTypes.STRING,
+    defaultValue: null,
   },
 });
 

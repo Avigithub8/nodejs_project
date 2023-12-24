@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const User = require("../models/UserModel");
-const Product = require("../models/productModel");
+//const User = require("../models/UserModel");
+const User = require("../models/user");
+//const Product = require("../models/productModel");
+const Product = require("../models/product");
 const { verifyToken, generateToken } = require("../middleware/verifyToken");
 const Razorpay = require("razorpay");
 const bcrypt = require("bcrypt");

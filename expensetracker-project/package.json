@@ -22,7 +22,11 @@
     "localStorage": "^1.0.4",
     "mysql": "^2.18.1",
     "mysql2": "^3.6.5",
+    "nodemailer": "^6.9.7",
     "razorpay": "^2.9.2",
-    "sequelize": "^6.35.1"
+    "sendinblue-api": "^1.0.8",
+    "sequelize": "^6.35.2",
+    "sib-api-v3-sdk": "^8.5.0",
+    "uuid": "^9.0.1"
   }
 }
