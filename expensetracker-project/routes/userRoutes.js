@@ -3,19 +3,28 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { verifyToken, generateToken } = require("../middleware/verifyToken");
-//const User = require("../models/UserModel");
+
 const User = require("../models/user");
 const { json } = require("body-parser");
 const localStorage = require("localStorage");
-const { v3: uuidv3 } = require("uuid");
-const SibApiV3Sdk = require("sib-api-v3-sdk");
+const { v4: uuidv4 } = require("uuid");
+const ForgotPasswordRequest = require("../models/forgotPassword");
+const sendinblueClient = require("../config/email");
+const nodemailer = require("nodemailer");
+const Sib = require("sib-api-v3-sdk");
+const axios = require("axios");
+
+const sendinblueApiKey =
+  "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";
+
+const sendinblueConfig = {
+  headers: {
+    "Content-Type": "application/json",
+    "api-key": sendinblueApiKey,
+  },
+};
 
 
-const defaultClient = SibApiV3Sdk.ApiClient.instance;
-const apiKey = defaultClient.authentications["api-key"];
-apiKey.apiKey = "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"; 
-
-const transactionalEmailsApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
 router.post("/signup", async (req, res) => {
   try {
@@ -68,6 +77,7 @@ router.post("/signin", async (req, res) => {
     if (!user || !bcrypt.compareSync(password, user.password)) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
+    await ForgotPasswordRequest.destroy({ where: { userId: user.id } });
     const token = generateToken(User.id);
 
     res.cookie("jwtToken", token, { httpOnly: true, maxAge: 3600000 * 1000 }); // 1 hour in milliseconds
@@ -99,42 +109,96 @@ router.delete("/deleteUser/:userId", async (req, res) => {
   }
 });
 
-
 router.get("/forgotpassword", (req, res) => {
-  res.render('user/forgotpassword', { message: null });
+  res.render("user/forgotpassword", { message: null });
 });
 
 router.post("/forgotpassword", async (req, res) => {
-  try {
-    const { email } = req.body;
+  const { email } = req.body;
 
-    const user = await User.findOne({ where: { email } });
+  const user = await User.findOne({ where: { email } });
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    const namespace = '1b671a64-40d5-491e-99b0-da01ff1f3341';
-    const uuid = uuidv3('Hello, World!', namespace);
-    
-    const resetToken = uuidv3(email,uuid);
-    
-    user.resetToken = resetToken;
+  if (user) {
+    const resetToken = generateResetToken();
 
-    await user.save();
+    await ForgotPasswordRequest.create({ userId: user.id, resetToken });
 
-    
-    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-    sendSmtpEmail.to = [{email:email}];
-    sendSmtpEmail.templateId = 1, 
-    sendSmtpEmail.params = { resetLink: `http://localhost:3000/user/forgotPassword/${resetToken}` };
+    sendResetEmail(user.email, resetToken);
 
-  
-    const response = await transactionalEmailsApi.sendTransacEmail(sendSmtpEmail);
-
-    return res.json({ success: true, message: "Reset link sent to your email", response });
-  } catch (error) {
-    console.error("Error:", error);
-    return res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.render("user/forgotpasswordsuccess");
+  } else {
+    res.render("user/forgotpassworderror", { error: "User not found" });
   }
 });
+
+router.get("/resetpassword/:resetToken", async (req, res) => {
+  const resetToken = req.params.resetToken;
+
+  const forgotPasswordEntry = await ForgotPasswordRequest.findOne({
+    where: { resetToken },
+    include: User,
+  });
+
+  if (forgotPasswordEntry) {
+    res.render("user/resetpassword", { resetToken });
+  } else {
+    res.render("user/resetpassworderror", { error: "Invalid or expired link" });
+  }
+});
+
+router.post("/resetpassword", async (req, res) => {
+  const { resetToken, password } = req.body;
+
+  const forgotPasswordEntry = await ForgotPasswordRequest.findOne({
+    where: { resetToken },
+    include: User,
+  });
+
+  if (forgotPasswordEntry) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = forgotPasswordEntry.User;
+    user.password = hashedPassword;
+    await user.save();
+    await forgotPasswordEntry.destroy();
+
+    res.render("user/resetpasswordsuccess");
+  } else {
+    res.render("user/resetpassworderror", { error: "Invalid or expired link" });
+  }
+});
+
+
+function generateResetToken() {
+  const crypto = require("crypto");
+  return crypto.randomBytes(8).toString("hex");
+}
+
+async function sendResetEmail(email, resetToken) {
+  const emailData = {
+    sender: { name: "Avi", email: "aviKaushik@yahoo.com" },
+    to: [{ email: email }],
+    subject: "Check Test Email",
+    htmlContent: `
+        <p>Click the following link to reset your password:</p>
+        <a href="http://localhost:3000/user/resetpassword/${resetToken}">Reset Password</a>
+      `,
+  };
+
+  console.log("==========", emailData);
+  try {
+    await axios.post(
+      "https://api.sendinblue.com/v3/smtp/email",
+      emailData,
+      sendinblueConfig
+    );
+    console.log("Email sent successfully");
+  } catch (error) {
+    console.error(
+      "Error sending email:",
+      error.response ? error.response.data : error.message
+    );
+    // res.status(500).json({ error: "Failed to send email" });
+  }
+}
+
 module.exports = router;

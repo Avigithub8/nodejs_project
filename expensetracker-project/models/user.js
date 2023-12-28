@@ -1,6 +1,7 @@
 const DataTypes  = require('sequelize');
 const sequelize  = require('./index');
-const Product=require('../models/product')
+const Product=require('../models/product');
+const forgotPassword=require('./forgotPassword')
 
 const User = sequelize.define('User', {
   email: {
@@ -24,9 +25,13 @@ const User = sequelize.define('User', {
     defaultValue: false,
   },
   resetToken: {
-    type: DataTypes.STRING,
+    type: DataTypes.CHAR(36),
     defaultValue: null,
   },
+  // resetToken: {
+  //   type: DataTypes.UUID, // Assuming resetToken is a UUID
+  //   defaultValue: DataTypes.UUIDV4,
+  // },
 });
 
 User.hasMany(Product, {
@@ -38,6 +43,25 @@ Product.belongsTo(User, {
   onDelete: 'CASCADE',
 });
 
+
+
+User.hasMany(forgotPassword, {
+  foreignKey: 'userId',
+  onDelete: 'CASCADE',
+});
+forgotPassword.belongsTo(User, {
+  foreignKey: 'userId',
+  onDelete: 'CASCADE',
+});
+
+// User.hasMany(forgotPassword, {
+//   foreignKey: 'resetToken', // Use resetToken as the foreign key
+//   onDelete: 'CASCADE',
+// });
+// forgotPassword.belongsTo(User, {
+//   foreignKey: 'resetToken',
+//   onDelete: 'CASCADE',
+// });
 
 
 
