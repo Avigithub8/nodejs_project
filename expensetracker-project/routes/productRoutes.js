@@ -33,8 +33,8 @@ router.get("/addProduct/:userId", verifyToken, async (req, res) => {
 });
 
 const razorpay = new Razorpay({
-  key_id: "rzp_test_beQQ9JQjjfEj8a",
-  key_secret: "wYVZZf1e8GhMDrXVdsEcJHCG",
+  key_id: "rzp_test_UZyDWKwD4tckHo",
+  key_secret: "uMGmu0mQm2mj4bR2KKg2pEHU",
 });
 
 router.get("/buyPremium", async (req, res) => {
@@ -234,5 +234,118 @@ router.get("/leaderboard", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
+router.get('/expenses', async(req, res) => {
+  const { duration } = req.query;
+
+  console.log("duration====",duration)
+
+  try {
+   
+    const expenses = await fetchExpenses(duration);
+
+    res.json({ success: true, expenses });
+} catch (error) {
+    console.error('Error fetching expenses:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+}
+});
+
+router.get('/downloadExpenses', async (req, res) => {
+  try {
+      
+      const expenses = await Product.findAll();
+
+      
+      const fileContent = expenses.map((expense, index) => {
+          return `Expense ${index + 1}: $${expense.amount} - ${expense.description}\n`;
+      }).join('');
+
+      
+      const filename = 'expenses_data.txt';
+      const filePath = path.join(__dirname, '../public', filename);
+      fs.writeFileSync(filePath, fileContent);
+
+     
+      res.download(filePath, filename, (err) => {
+         
+          fs.unlinkSync(filePath);
+
+          if (err) {
+              console.error('Error downloading file:', err);
+          }
+      });
+  } catch (error) {
+      console.error('Error fetching expenses:', error);
+      res.status(500).json({ success: false, message: 'Error fetching expenses data' });
+  }
+});
+
+
+async function fetchExpenses(duration) {
+  try {
+      
+      let expenses;
+     
+      if (duration === 'daily') {
+        try{
+          expenses = await Product.findAll({
+              where: {
+                  
+                  createdAt: {
+                    [Op.between]: [
+                      new Date(new Date().setHours(0, 0, 0)),
+                      new Date(new Date().setHours(23, 59, 59))
+                  ]
+                  }
+              },
+          });
+          
+            console.log('Products:', expenses.toString());
+        }catch(error){
+          console.error('Error fetching products:', error);
+        }
+           
+
+      } else if (duration === 'weekly') {
+          expenses = await Product.findAll({
+              where: {
+                  
+                  createdAt: {
+                    [Op.between]: [
+                      new Date(new Date() - 7 * 24 * 60 * 60 * 1000),
+                      new Date()
+                  ]
+                  }
+              },
+          });
+      } else if (duration === 'monthly') {
+          expenses = await Product.findAll({
+              where: {
+                  
+                  createdAt: {
+                    [Op.between]: [
+                      new Date(new Date().setDate(1)),
+                      new Date(new Date().setMonth(new Date().getMonth() + 1) - 1)
+                  ]
+                  }
+              },
+          });
+      } else {
+          return [];
+      }
+   
+
+      console.log("expenses+++",expenses)
+      return expenses.map((expense) => ({
+        amount: expense.amount,
+        description: expense.description,
+        category: expense.category,
+      }));
+  } catch (error) {
+      console.error('Error fetching expenses:', error);
+      return [];
+  }
+}
 
 module.exports = router;
