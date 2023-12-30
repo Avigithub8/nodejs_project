@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 //const User = require("../models/UserModel");
 const User = require("../models/user");
+const path = require("path");
+const fs = require("fs");
 //const Product = require("../models/productModel");
 const Product = require("../models/product");
 const { verifyToken, generateToken } = require("../middleware/verifyToken");
@@ -122,14 +124,12 @@ router.post("/addProduct", async (req, res) => {
       user = await User.create({ id: userId });
     }
 
-   
-      const newProduct = await Product.create({
-        userId: userId,
-        amount: amount,
-        description: description,
-        category: category,
-      });
-   
+    const newProduct = await Product.create({
+      userId: userId,
+      amount: amount,
+      description: description,
+      category: category,
+    });
 
     //res.json({ success: true, message: 'Product added successfully' });
     res.redirect(`/product/addProduct/${userId}`);
@@ -149,8 +149,6 @@ router.get("/getProductList", async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
-
 
 async function fetchUpdatedProductList() {
   const t = await sequelize.transaction();
@@ -212,8 +210,6 @@ router.get("/buyPremium/:userId", verifyToken, async (req, res) => {
   }
 });
 
-
-
 router.get("/leaderboard", async (req, res) => {
   const t = await sequelize.transaction();
 
@@ -235,116 +231,139 @@ router.get("/leaderboard", async (req, res) => {
   }
 });
 
-router.get('/expenses', async(req, res) => {
-  const { duration } = req.query;
+router.get("/expenses", async (req, res) => {
+  const { duration, userId } = req.query;
 
-  console.log("duration====",duration)
+  console.log("duration====", duration, userId);
 
   try {
-   
-    const expenses = await fetchExpenses(duration);
+    const expenses = await fetchExpenses(duration, userId);
 
     res.json({ success: true, expenses });
-} catch (error) {
-    console.error('Error fetching expenses:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
-}
-});
-
-router.get('/downloadExpenses', async (req, res) => {
-  try {
-      
-      const expenses = await Product.findAll();
-
-      
-      const fileContent = expenses.map((expense, index) => {
-          return `Expense ${index + 1}: $${expense.amount} - ${expense.description}\n`;
-      }).join('');
-
-      
-      const filename = 'expenses_data.txt';
-      const filePath = path.join(__dirname, '../public', filename);
-      fs.writeFileSync(filePath, fileContent);
-
-     
-      res.download(filePath, filename, (err) => {
-         
-          fs.unlinkSync(filePath);
-
-          if (err) {
-              console.error('Error downloading file:', err);
-          }
-      });
   } catch (error) {
-      console.error('Error fetching expenses:', error);
-      res.status(500).json({ success: false, message: 'Error fetching expenses data' });
+    console.error("Error fetching expenses:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
-
-async function fetchExpenses(duration) {
+router.get("/downloadExpenses", async (req, res) => {
+  const { userId } = req.query;
+  console.log("userId====", userId);
   try {
-      
-      let expenses;
-     
-      if (duration === 'daily') {
-        try{
-          expenses = await Product.findAll({
-              where: {
-                  
-                  createdAt: {
-                    [Op.between]: [
-                      new Date(new Date().setHours(0, 0, 0)),
-                      new Date(new Date().setHours(23, 59, 59))
-                  ]
-                  }
-              },
-          });
-          
-            console.log('Products:', expenses.toString());
-        }catch(error){
-          console.error('Error fetching products:', error);
-        }
-           
+    // const expenses = await Product.findAll();
+    // const fileContent = expenses.map((expense, index) => {
+    //     return `Expense ${index + 1}: $${expense.amount} - ${expense.description}\n`;
+    // }).join('');
+    // const filename = 'expenses_data.txt';
 
-      } else if (duration === 'weekly') {
-          expenses = await Product.findAll({
-              where: {
-                  
-                  createdAt: {
-                    [Op.between]: [
-                      new Date(new Date() - 7 * 24 * 60 * 60 * 1000),
-                      new Date()
-                  ]
-                  }
-              },
-          });
-      } else if (duration === 'monthly') {
-          expenses = await Product.findAll({
-              where: {
-                  
-                  createdAt: {
-                    [Op.between]: [
-                      new Date(new Date().setDate(1)),
-                      new Date(new Date().setMonth(new Date().getMonth() + 1) - 1)
-                  ]
-                  }
-              },
-          });
-      } else {
-          return [];
+    const expenses = await fetchExpensesForUser(userId);
+
+    const fileContent = generateFileContent(expenses);
+
+    const filename = `expenses_${userId}.txt`;
+    const filePath = path.join(__dirname, "../public", filename);
+    fs.writeFileSync(filePath, fileContent);
+
+    res.download(filePath, filename, (err) => {
+      fs.unlinkSync(filePath);
+
+      if (err) {
+        console.error("Error downloading file:", err);
       }
-   
-
-      console.log("expenses+++",expenses)
-      return expenses.map((expense) => ({
-        amount: expense.amount,
-        description: expense.description,
-        category: expense.category,
-      }));
+    });
   } catch (error) {
-      console.error('Error fetching expenses:', error);
+    console.error("Error fetching expenses:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error fetching expenses data" });
+  }
+});
+
+async function fetchExpensesForUser(userId) {
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error(`User with ID ${userId} not found`);
+    }
+
+    const expenses = await Product.findAll({
+      where: { userId },
+      attributes: ["amount", "description", "category"],
+    });
+
+    return expenses;
+  } catch (error) {
+    console.error("Error fetching expenses for user:", error);
+    throw error;
+  }
+}
+
+function generateFileContent(expenses) {
+  return expenses
+    .map((expense) => `${expense.description}: $${expense.amount}`)
+    .join("\n");
+}
+
+async function fetchExpenses(duration, userId) {
+  try {
+    let expenses;
+    const userCondition = { userId: userId };
+
+    if (duration === "daily") {
+      try {
+        expenses = await Product.findAll({
+          where: {
+            ...userCondition,
+            createdAt: {
+              [Op.between]: [
+                new Date(new Date().setHours(0, 0, 0)),
+                new Date(new Date().setHours(23, 59, 59)),
+              ],
+            },
+          },
+        });
+
+        console.log("Products:", expenses.toString());
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    } else if (duration === "weekly") {
+      expenses = await Product.findAll({
+        where: {
+          ...userCondition,
+          createdAt: {
+            [Op.between]: [
+              new Date(new Date() - 7 * 24 * 60 * 60 * 1000),
+              new Date(),
+            ],
+          },
+        },
+      });
+    } else if (duration === "monthly") {
+      expenses = await Product.findAll({
+        where: {
+          ...userCondition,
+          createdAt: {
+            [Op.between]: [
+              new Date(new Date().setDate(1)),
+              new Date(new Date().setMonth(new Date().getMonth() + 1) - 1),
+            ],
+          },
+        },
+      });
+    } else {
       return [];
+    }
+
+    console.log("expenses+++", expenses);
+    return expenses.map((expense) => ({
+      amount: expense.amount,
+      description: expense.description,
+      category: expense.category,
+    }));
+  } catch (error) {
+    console.error("Error fetching expenses:", error);
+    return [];
   }
 }
 

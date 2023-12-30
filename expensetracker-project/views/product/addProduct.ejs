@@ -40,11 +40,11 @@
 
     <button onclick="showLeaderboard()">Show Leaderboard</button>
 
-    <button onclick="viewExpenses('daily')">View Daily Expenses</button>
-    <button onclick="viewExpenses('weekly')">View Weekly Expenses</button>
-    <button onclick="viewExpenses('monthly')">View Monthly Expenses</button>
+    <button onclick="viewExpenses('daily','<%= userId %>')">View Daily Expenses</button>
+    <button onclick="viewExpenses('weekly','<%= userId %>')">View Weekly Expenses</button>
+    <button onclick="viewExpenses('monthly','<%= userId %>')">View Monthly Expenses</button>
 
-    <button id="downloadButton" onclick="downloadExpenses()" disabled>
+    <button id="downloadButton" onclick="downloadExpenses('<%= userId %>')" >
       Download Expenses
     </button>
 
@@ -71,8 +71,10 @@
     <% } %>
 
     <div id="leaderboardSection" style="display: none"></div>
-
+    
     <script>
+      let isPremium =`<%= isPremium %>`;
+       console.log("isPremium",isPremium)
       async function deleteProduct(productId, userId) {
         try {
           const response = await fetch(
@@ -180,10 +182,10 @@
         }
       }
 
-      async function viewExpenses(duration) {
+      async function viewExpenses(duration,userId) {
         try {
           const response = await fetch(
-            `http://localhost:3000/product/expenses?duration=${duration}`
+            `http://localhost:3000/product/expenses?duration=${duration}&userId=${userId}`
           );
           const data = await response.json();
 
@@ -196,7 +198,7 @@
 
             
             const downloadButton = document.getElementById("downloadButton");
-            downloadButton.disabled = "<%= !isPremium%>";
+            downloadButton.disabled = !isPremium;
           } else {
             console.error("Error fetching expenses data:", data.message);
           }
@@ -205,10 +207,10 @@
         }
       }
 
-      async function downloadExpenses() {
+      async function downloadExpenses(userId) {
         try {
           const response = await fetch(
-            "http://localhost:3000/product/downloadExpenses"
+            `http://localhost:3000/product/downloadExpenses?userId=${userId}`
           );
           const blob = await response.blob();
 
