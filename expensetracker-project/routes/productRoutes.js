@@ -16,22 +16,57 @@ const { Op } = require("sequelize");
 router.use(verifyToken);
 
 localStorage.getItem("jwtToken");
+// router.get("/addProduct/:userId", verifyToken, async (req, res) => {
+//   const userId = req.params.userId;
+
+//   //const user = await User.findByPk(userId, { attributes: ['id', 'email', 'username', 'is_premium'] });
+//   const userProducts = await User.findByPk(userId, { include: Product });
+//   const username =
+//     userProducts?.username !== null && userProducts?.username !== undefined
+//       ? userProducts?.username
+//       : "N/A";
+//   res.render(`product/addProduct`, {
+//     username: username,
+//     isPremium: userProducts?.is_premium || false,
+//     products: userProducts?.Products || [],
+//     userId: userId,
+//   });
+//   //res.json({ user });
+// });
+
+
+const PAGE_SIZE = 5; // Adjust this based on your desired page size
+
 router.get("/addProduct/:userId", verifyToken, async (req, res) => {
   const userId = req.params.userId;
+  const page = req.query.page || 1; // Default to page 1 if not specified
+  const duration = req.query.duration || 'monthly';
+  try {
+    const userProducts = await User.findByPk(userId, { include: Product });
 
-  //const user = await User.findByPk(userId, { attributes: ['id', 'email', 'username', 'is_premium'] });
-  const userProducts = await User.findByPk(userId, { include: Product });
-  const username =
-    userProducts?.username !== null && userProducts?.username !== undefined
-      ? userProducts?.username
-      : "N/A";
-  res.render(`product/addProduct`, {
-    username: username,
-    isPremium: userProducts?.is_premium || false,
-    products: userProducts?.Products || [],
-    userId: userId,
-  });
-  //res.json({ user });
+    // Pagination logic
+    const totalProducts = userProducts?.Products.length || 0;
+    const totalPages = Math.ceil(totalProducts / PAGE_SIZE);
+    const offset = (page - 1) * PAGE_SIZE;
+    const products = userProducts?.Products.slice(offset, offset + PAGE_SIZE) || [];
+
+    const username =
+      userProducts?.username !== null && userProducts?.username !== undefined
+        ? userProducts?.username
+        : "N/A";
+
+    res.render(`product/addProduct`, {
+      username: username,
+      isPremium: userProducts?.is_premium || false,
+      products: userProducts?.Products || [],
+      userId: userId,
+      totalPages: totalPages,
+      duration:duration,
+    });
+  } catch (error) {
+    console.error("Error rendering addProduct template:", error);
+    res.status(500).send("Internal Server Error");
+  }
 });
 
 const razorpay = new Razorpay({
@@ -231,15 +266,32 @@ router.get("/leaderboard", async (req, res) => {
   }
 });
 
-router.get("/expenses", async (req, res) => {
-  const { duration, userId } = req.query;
+async function getTotalExpenses(userId) {
+  try {
+    const totalExpenses = await Product.count({
+      where: { userId },
+    });
+    return totalExpenses;
+  } catch (error) {
+    console.error("Error getting total expenses:", error);
+    return 0; // Return 0 in case of an error
+  }
+}
 
-  console.log("duration====", duration, userId);
+router.get("/expenses", async (req, res) => {
+  const { duration, userId, page } = req.query;
+  const pageSize = 5;
+
+  console.log('duration====', duration, userId, page);
 
   try {
-    const expenses = await fetchExpenses(duration, userId);
+    const totalExpenses = await getTotalExpenses(userId);
+    const totalPages = Math.ceil(totalExpenses / pageSize);
 
-    res.json({ success: true, expenses });
+    const offset = (page - 1) * pageSize;
+    const expenses = await fetchExpenses(duration, userId,offset,pageSize);
+   
+    res.json({ success: true, expenses,totalPages });
   } catch (error) {
     console.error("Error fetching expenses:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -304,7 +356,7 @@ function generateFileContent(expenses) {
     .join("\n");
 }
 
-async function fetchExpenses(duration, userId) {
+async function fetchExpenses(duration, userId,offset,limit) {
   try {
     let expenses;
     const userCondition = { userId: userId };
@@ -321,6 +373,8 @@ async function fetchExpenses(duration, userId) {
               ],
             },
           },
+          offset,
+          limit,
         });
 
         console.log("Products:", expenses.toString());
@@ -338,6 +392,8 @@ async function fetchExpenses(duration, userId) {
             ],
           },
         },
+        offset,
+        limit,
       });
     } else if (duration === "monthly") {
       expenses = await Product.findAll({
@@ -350,12 +406,14 @@ async function fetchExpenses(duration, userId) {
             ],
           },
         },
+        offset,
+        limit,
       });
     } else {
       return [];
     }
 
-    console.log("expenses+++", expenses);
+    
     return expenses.map((expense) => ({
       amount: expense.amount,
       description: expense.description,

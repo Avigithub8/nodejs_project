@@ -40,11 +40,17 @@
 
     <button onclick="showLeaderboard()">Show Leaderboard</button>
 
-    <button onclick="viewExpenses('daily','<%= userId %>')">View Daily Expenses</button>
-    <button onclick="viewExpenses('weekly','<%= userId %>')">View Weekly Expenses</button>
-    <button onclick="viewExpenses('monthly','<%= userId %>')">View Monthly Expenses</button>
+    <button onclick="viewExpenses('daily','<%= userId %>',currentPage)">
+      View Daily Expenses
+    </button>
+    <button onclick="viewExpenses('weekly','<%= userId %>',currentPage)">
+      View Weekly Expenses
+    </button>
+    <button onclick="viewExpenses('monthly','<%= userId %>',currentPage)">
+      View Monthly Expenses
+    </button>
 
-    <button id="downloadButton" onclick="downloadExpenses('<%= userId %>')" >
+    <button id="downloadButton" onclick="downloadExpenses('<%= userId %>')">
       Download Expenses
     </button>
 
@@ -71,10 +77,36 @@
     <% } %>
 
     <div id="leaderboardSection" style="display: none"></div>
-    
+    <div id="paginationControls">
+      <button onclick="loadPage('prev')">Previous</button>
+      <span>Page <span id="currentPage">1</span> of <%= totalPages %></span>
+      <button onclick="loadPage('next')">Next</button>
+    </div>
     <script>
-      let isPremium =`<%= isPremium %>`;
-       console.log("isPremium",isPremium)
+      
+      let isPremium = `<%= isPremium %>`;
+      console.log("isPremium", isPremium);
+ 
+      let currentPage = 1;
+      let totalPages = '<%= totalPages %>' || 1;
+      console.log("totalPages",totalPages)
+
+      document.addEventListener("DOMContentLoaded", function () {
+    
+    viewExpenses('daily', '<%= userId %>', 1);
+     });
+  async function loadPage(action) {
+    if (action === 'prev' && currentPage > 1) {
+      currentPage--;
+    } else if (action === 'next' && currentPage < totalPages) {
+      currentPage++;
+    }
+    document.getElementById('currentPage').innerText = currentPage;
+    const duration = `<%= duration %>`;
+    const userId = `<%= userId %>`;
+    await viewExpenses(duration, userId, currentPage);
+  }
+
       async function deleteProduct(productId, userId) {
         try {
           const response = await fetch(
@@ -182,21 +214,20 @@
         }
       }
 
-      async function viewExpenses(duration,userId) {
+      async function viewExpenses(duration, userId,page) {
         try {
           const response = await fetch(
-            `http://localhost:3000/product/expenses?duration=${duration}&userId=${userId}`
+            `http://localhost:3000/product/expenses?duration=${duration}&userId=${userId}&page=${page}`
           );
           const data = await response.json();
 
-          console.log("data",data)
+          //console.log("data", data);
 
           if (data.success) {
             const expensesSection = document.getElementById("expensesSection");
             expensesSection.innerHTML = generateExpensesHTML(data.expenses);
             expensesSection.style.display = "block";
 
-            
             const downloadButton = document.getElementById("downloadButton");
             downloadButton.disabled = !isPremium;
           } else {
@@ -230,7 +261,7 @@
           return "<p>No expenses found</p>";
         }
 
-        const expensesHTML =expenses
+        const expensesHTML = expenses
           .map(
             (expense) => `
             <li>
