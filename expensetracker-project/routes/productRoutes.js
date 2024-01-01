@@ -4,6 +4,7 @@ const router = express.Router();
 const User = require("../models/user");
 const path = require("path");
 const fs = require("fs");
+const jwt = require("jsonwebtoken");
 //const Product = require("../models/productModel");
 const Product = require("../models/product");
 const { verifyToken, generateToken } = require("../middleware/verifyToken");
@@ -12,6 +13,7 @@ const bcrypt = require("bcrypt");
 const localStorage = require("localStorage");
 const sequelize = require("../models/index");
 const { Op } = require("sequelize");
+require('dotenv').config();
 
 router.use(verifyToken);
 
@@ -35,20 +37,20 @@ localStorage.getItem("jwtToken");
 // });
 
 
-const PAGE_SIZE = 5; // Adjust this based on your desired page size
+const PAGE_SIZE = 5; 
 
 router.get("/addProduct/:userId", verifyToken, async (req, res) => {
   const userId = req.params.userId;
-  const page = req.query.page || 1; // Default to page 1 if not specified
+  //const page = req.query.page || 1;
   const duration = req.query.duration || 'monthly';
   try {
     const userProducts = await User.findByPk(userId, { include: Product });
 
-    // Pagination logic
+    
     const totalProducts = userProducts?.Products.length || 0;
     const totalPages = Math.ceil(totalProducts / PAGE_SIZE);
-    const offset = (page - 1) * PAGE_SIZE;
-    const products = userProducts?.Products.slice(offset, offset + PAGE_SIZE) || [];
+    //const offset = (page - 1) * PAGE_SIZE;
+    //const products = userProducts?.Products.slice(offset, offset + PAGE_SIZE) || [];
 
     const username =
       userProducts?.username !== null && userProducts?.username !== undefined
@@ -70,8 +72,8 @@ router.get("/addProduct/:userId", verifyToken, async (req, res) => {
 });
 
 const razorpay = new Razorpay({
-  key_id: "rzp_test_UZyDWKwD4tckHo",
-  key_secret: "uMGmu0mQm2mj4bR2KKg2pEHU",
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret:process.env.RAZORPAY_KEY_SECRET,
 });
 
 router.get("/buyPremium", async (req, res) => {
@@ -413,7 +415,7 @@ async function fetchExpenses(duration, userId,offset,limit) {
       return [];
     }
 
-    
+   // console.log("expenses+++", expenses);
     return expenses.map((expense) => ({
       amount: expense.amount,
       description: expense.description,
@@ -424,5 +426,8 @@ async function fetchExpenses(duration, userId,offset,limit) {
     return [];
   }
 }
+
+
+
 
 module.exports = router;

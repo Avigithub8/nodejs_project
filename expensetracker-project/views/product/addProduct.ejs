@@ -7,17 +7,19 @@
   </head>
   <body>
     <h2>Welcome, <%= username %>!</h2>
+    <div>
+      <form id="addProductForm" action="/product/addProduct" method="POST">
+        <input type="hidden" name="userId" value="<%= userId %>" required />
+        <label>Amount: <input type="text" name="amount" required /></label>
+        <label
+          >Description: <input type="text" name="description" required
+        /></label>
+        <label>Category: <input type="text" name="category" required /></label>
 
-    <form id="addProductForm" action="/product/addProduct" method="POST">
-      <input type="hidden" name="userId" value="<%= userId %>" required />
-      <label>Amount: <input type="text" name="amount" required /></label>
-      <label
-        >Description: <input type="text" name="description" required
-      /></label>
-      <label>Category: <input type="text" name="category" required /></label>
-
-      <button type="submit">Add Product</button>
-    </form>
+        <button type="submit">Add Product</button>
+      </form>
+      
+    </div>
     <br />
 
     <% if (isPremium) { %>
@@ -54,9 +56,8 @@
       Download Expenses
     </button>
 
-    <div id="leaderboardSection" style="display: none"></div>
-
     <div id="expensesSection" style="display: none"></div>
+    <div id="leaderboardSection" style="display: none"></div>
 
     <% } else { %>
     <a href="/product/buyPremium?userId=<%= userId %>">Buy Premium</a>
@@ -66,6 +67,7 @@
       <li>
         <%= product.amount %> - <%= product.description %> - <%=
         product.category %>
+
         <a
           href="/product/addProduct/<%= userId %>"
           onclick="deleteProduct('<%= product.id %>', '<%= userId %>')"
@@ -74,6 +76,7 @@
       </li>
       <% } %>
     </ul>
+
     <% } %>
 
     <div id="leaderboardSection" style="display: none"></div>
@@ -83,29 +86,27 @@
       <button onclick="loadPage('next')">Next</button>
     </div>
     <script>
-      
       let isPremium = `<%= isPremium %>`;
       console.log("isPremium", isPremium);
- 
+
       let currentPage = 1;
-      let totalPages = '<%= totalPages %>' || 1;
-      console.log("totalPages",totalPages)
+      let totalPages = "<%= totalPages %>" || 1;
+      console.log("totalPages", totalPages);
 
       document.addEventListener("DOMContentLoaded", function () {
-    
-    viewExpenses('daily', '<%= userId %>', 1);
-     });
-  async function loadPage(action) {
-    if (action === 'prev' && currentPage > 1) {
-      currentPage--;
-    } else if (action === 'next' && currentPage < totalPages) {
-      currentPage++;
-    }
-    document.getElementById('currentPage').innerText = currentPage;
-    const duration = `<%= duration %>`;
-    const userId = `<%= userId %>`;
-    await viewExpenses(duration, userId, currentPage);
-  }
+        viewExpenses("daily", "<%= userId %>", 1);
+      });
+      async function loadPage(action) {
+        if (action === "prev" && currentPage > 1) {
+          currentPage--;
+        } else if (action === "next" && currentPage < totalPages) {
+          currentPage++;
+        }
+        document.getElementById("currentPage").innerText = currentPage;
+        const duration = `<%= duration %>`;
+        const userId = `<%= userId %>`;
+        await viewExpenses(duration, userId, currentPage);
+      }
 
       async function deleteProduct(productId, userId) {
         try {
@@ -214,7 +215,7 @@
         }
       }
 
-      async function viewExpenses(duration, userId,page) {
+      async function viewExpenses(duration, userId, page) {
         try {
           const response = await fetch(
             `http://localhost:3000/product/expenses?duration=${duration}&userId=${userId}&page=${page}`
@@ -273,6 +274,8 @@
 
         return `<ul>${expensesHTML}</ul>`;
       }
+
+     
     </script>
   </body>
 </html>

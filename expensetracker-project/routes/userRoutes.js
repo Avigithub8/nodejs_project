@@ -13,10 +13,13 @@ const sendinblueClient = require("../config/email");
 const nodemailer = require("nodemailer");
 const Sib = require("sib-api-v3-sdk");
 const axios = require("axios");
+require('dotenv').config();
 
-const sendinblueApiKey =
-  "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";
+// const sendinblueApiKey =
+//   "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";
 
+const sendinblueApiKey = process.env.SENDINBLUE_API_KEY;
+console.log("api_key",sendinblueApiKey)
 const sendinblueConfig = {
   headers: {
     "Content-Type": "application/json",
@@ -24,7 +27,7 @@ const sendinblueConfig = {
   },
 };
 
-
+console.log("''''''''''''",sendinblueConfig)
 
 router.post("/signup", async (req, res) => {
   try {
@@ -175,9 +178,9 @@ function generateResetToken() {
 
 async function sendResetEmail(email, resetToken) {
   const emailData = {
-    sender: { name: "Avi", email: "aviKaushik@yahoo.com" },
+    sender: { name: "Avi", email: process.env.SENDER_EMAIL },
     to: [{ email: email }],
-    subject: "Check Test Email",
+    subject: " Testing Email",
     htmlContent: `
         <p>Click the following link to reset your password:</p>
         <a href="http://localhost:3000/user/resetpassword/${resetToken}">Reset Password</a>
@@ -185,6 +188,7 @@ async function sendResetEmail(email, resetToken) {
   };
 
   console.log("==========", emailData);
+  console.log("==========++", sendinblueConfig);
   try {
     await axios.post(
       "https://api.sendinblue.com/v3/smtp/email",
@@ -200,5 +204,8 @@ async function sendResetEmail(email, resetToken) {
     // res.status(500).json({ error: "Failed to send email" });
   }
 }
+
+
+
 
 module.exports = router;
